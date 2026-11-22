@@ -21,7 +21,7 @@ class ExamResult(db.Model):
     started_at    = db.Column(db.DateTime, server_default=db.func.now())
     submitted_at  = db.Column(db.DateTime, nullable=True)
     status        = db.Column(
-        db.Enum("in_progress", "submitted", "terminated", "retake_allowed"),
+        db.Enum("in_progress", "submitted", "terminated", "retake_allowed", native_enum=False),
         nullable=False, default="in_progress"
     )
     answers_json  = db.Column(db.Text, nullable=True)  # JSON dict {question_id: chosen_option}

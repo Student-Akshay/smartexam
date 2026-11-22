@@ -17,18 +17,24 @@ class Config:
     DEBUG = os.environ.get("DEBUG", "true").lower() == "true"
 
     # ------------------------------------------------------------------
-    # Database  (MySQL via PyMySQL)
+    # Database (Supabase / Render PostgreSQL or local MySQL)
     # ------------------------------------------------------------------
-    DB_HOST     = os.environ.get("DB_HOST",     "localhost")
-    DB_PORT     = int(os.environ.get("DB_PORT", "3306"))
-    DB_USER     = os.environ.get("DB_USER",     "root")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD", "Akshay20092006")
-    DB_NAME     = os.environ.get("DB_NAME",     "smartexam")
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    if DATABASE_URL:
+        if DATABASE_URL.startswith("postgres://"):
+            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    else:
+        DB_HOST     = os.environ.get("DB_HOST",     "localhost")
+        DB_PORT     = int(os.environ.get("DB_PORT", "3306"))
+        DB_USER     = os.environ.get("DB_USER",     "root")
+        DB_PASSWORD = os.environ.get("DB_PASSWORD", "Akshay20092006")
+        DB_NAME     = os.environ.get("DB_NAME",     "smartexam")
 
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-        "?charset=utf8mb4"
-    )
+        SQLALCHEMY_DATABASE_URI = (
+            f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+            "?charset=utf8mb4"
+        )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # ------------------------------------------------------------------

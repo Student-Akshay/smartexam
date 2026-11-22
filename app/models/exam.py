@@ -44,7 +44,7 @@ class Question(db.Model):
     option_b       = db.Column(db.String(500), nullable=False)
     option_c       = db.Column(db.String(500), nullable=False)
     option_d       = db.Column(db.String(500), nullable=False)
-    correct_option = db.Column(db.Enum("A","B","C","D"), nullable=False)
+    correct_option = db.Column(db.Enum("A","B","C","D", native_enum=False), nullable=False)
     marks          = db.Column(db.Integer,     nullable=False, default=1)
     question_order = db.Column(db.Integer,     nullable=False, default=0)
 

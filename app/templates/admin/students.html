@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block page_title %}Students{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-2">
+  <div>
+    <h1>👥 Registered Students</h1>
+    <p class="text-muted">{{ students | length }} student(s) registered in the system.</p>
+  </div>
+  <button type="button" class="btn btn-primary" onclick="document.getElementById('add-student-modal').style.display='flex'">
+    ➕ Add Student
+  </button>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    {% if students %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Registered</th>
+              <th>Attempts</th>
+              <th>Violations</th>
+              <th>Last Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+              {% set s = stats[student.id] %}
+              <tr>
+                <td class="text-muted">{{ loop.index }}</td>
+                <td>
+                  <strong>{{ student.full_name }}</strong>
+                </td>
+                <td class="text-muted">{{ student.email }}</td>
+                <td class="text-muted" style="font-size:.8rem;">
+                  {{ student.created_at.strftime('%d %b %Y') }}
+                </td>
+                <td>
+                  <span class="badge badge-primary">{{ s.attempts }}</span>
+                </td>
+                <td>
+                  {% if s.total_violations > 0 %}
+                    <span class="badge badge-danger">{{ s.total_violations }}</span>
+                  {% else %}
+                    <span class="badge badge-success">0</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if s.latest_result %}
+                    <strong>{{ s.latest_result.final_score }}</strong>
+                    <span class="text-muted">/ {{ s.latest_result.exam.total_marks }}</span>
+                    {% if s.latest_result.status == 'retake_allowed' %}
+                      <span class="badge badge-info" style="margin-left:.25rem;">Retake Allowed</span>
+                    {% elif s.latest_result.penalty_marks > 0 %}
+                      <span class="badge badge-danger" style="margin-left:.25rem;">−{{ s.latest_result.penalty_marks }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <h3>No students registered yet</h3>
+        <p>Students will appear here after they create an account.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Add Student Modal -->
+<div id="add-student-modal" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.5); z-index:10000;
+  align-items:center; justify-content:center;">
+  <div class="card" style="max-width:460px;width:90%;margin:auto;">
+    <div class="card-header">
+      <h3>➕ Add New Student</h3>
+      <button type="button" class="alert-close" onclick="document.getElementById('add-student-modal').style.display='none'">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('admin.create_student') }}">
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label" for="full_name">Full Name</label>
+          <input class="form-control" type="text" id="full_name" name="full_name" placeholder="John Doe" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input class="form-control" type="email" id="email" name="email" placeholder="student@example.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-control" type="password" id="password" name="password" placeholder="Min 6 characters" required />
+        </div>
+      </div>
+      <div style="padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:.75rem;justify-content:flex-end;">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('add-student-modal').style.display='none'">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+          💾 Create Student
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

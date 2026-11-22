@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+{% block page_title %}Login{% endblock %}
+
+{# Override body to use auth centered layout (no sidebar) #}
+{% block body %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="logo-icon">🎓</div>
+      <div>
+        <h1>SmartExam</h1>
+        <small>AI Anti-Cheating System</small>
+      </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container" style="margin-bottom:1rem;">
+          {% for category, msg in messages %}
+            <div class="alert alert-{{ category }}">
+              <span>{{ msg }}</span>
+              <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <h2 style="text-align:center;margin-bottom:1.5rem;">Welcome Back</h2>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input
+          class="form-control"
+          type="email"
+          id="email"
+          name="email"
+          placeholder="you@example.com"
+          required
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input
+          class="form-control"
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Your password"
+          required
+          autocomplete="current-password"
+        />
+      </div>
+
+      <div class="form-group" style="display:flex;align-items:center;gap:.5rem;">
+        <input type="checkbox" id="remember" name="remember" />
+        <label for="remember" style="font-size:.875rem;cursor:pointer;">Remember me</label>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg">
+        🔐 Sign In
+      </button>
+    </form>
+
+    <hr class="divider" />
+    <p style="text-align:center;font-size:.9rem;">
+      Don't have an account?
+      <a href="{{ url_for('auth.register') }}"><strong>Register here</strong></a>
+    </p>
+
+    <!-- Demo credentials hint -->
+    <div class="alert alert-info mt-2" style="font-size:.8rem;">
+      <div>
+        <strong>Demo Admin:</strong> admin@smartexam.com / Admin@123<br/>
+        <strong>Demo Student:</strong> alice@example.com / Student@123
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

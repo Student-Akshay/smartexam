@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Violations{% endblock %}
+{% block page_title %}Violations Log{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-2">
+  <div>
+    <h1>⚠️ Violation Log</h1>
+    <p class="text-muted">{{ logs | length }} violation event(s) found.</p>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="card" style="margin-bottom:1.25rem;">
+  <div class="card-body">
+    <form method="GET" action="{{ url_for('admin.violations') }}"
+          style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:160px;">
+        <label class="form-label">Student</label>
+        <select class="form-control" name="student_id">
+          <option value="">All Students</option>
+          {% for s in students %}
+            <option value="{{ s.id }}" {% if selected_student_id == s.id %}selected{% endif %}>
+              {{ s.full_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <label class="form-label">Exam</label>
+        <select class="form-control" name="exam_id">
+          <option value="">All Exams</option>
+          {% for exam in exams %}
+            <option value="{{ exam.id }}" {% if selected_exam_id == exam.id %}selected{% endif %}>
+              {{ exam.title }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <label class="form-label">Violation Type</label>
+        <select class="form-control" name="vtype">
+          <option value="">All Types</option>
+          {% for vt in violation_types %}
+            <option value="{{ vt }}" {% if selected_type == vt %}selected{% endif %}>
+              {{ vt.replace('_',' ').title() }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <button type="submit" class="btn btn-primary">🔍 Filter</button>
+        <a href="{{ url_for('admin.violations') }}" class="btn btn-outline">✕ Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    {% if logs %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Student</th>
+              <th>Exam</th>
+              <th>Violation Type</th>
+              <th>Warning #</th>
+              <th>Penalty</th>
+              <th>Detected At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in logs %}
+              <tr>
+                <td class="text-muted">{{ loop.index }}</td>
+                <td><strong>{{ v.student.full_name }}</strong></td>
+                <td>{{ v.exam.title }}</td>
+                <td>
+                  <span class="badge {% if v.violation_type == 'FACE_MISSING' %}badge-danger
+                                     {% elif v.violation_type == 'MULTIPLE_FACES' %}badge-danger
+                                     {% elif 'GAZE' in v.violation_type %}badge-warning
+                                     {% else %}badge-info{% endif %}">
+                    {{ v.human_type }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge badge-muted">#{{ v.warning_number }}</span>
+                </td>
+                <td>
+                  {% if v.penalty_marks > 0 %}
+                    <span class="badge badge-danger">−{{ v.penalty_marks }} mark(s)</span>
+                  {% else %}
+                    <span class="text-muted">Warning only</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted" style="font-size:.8rem;">
+                  {{ v.detected_at.strftime('%d %b %Y %H:%M:%S') }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">✅</div>
+        <h3>No violations found</h3>
+        <p>No violation events match your filter criteria.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

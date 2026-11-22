@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Exam Result{% endblock %}
+{% block page_title %}Exam Result{% endblock %}
+
+{% block content %}
+{% set pct = result.percentage %}
+
+<!-- Hero result card -->
+<div class="result-hero" style="margin-bottom:1.5rem;">
+  <h2>{{ result.exam.title }}</h2>
+  <p style="opacity:.8;margin-top:.25rem;">Submitted on {{ result.submitted_at.strftime('%d %b %Y at %H:%M') if result.submitted_at else '—' }}</p>
+
+  <div class="result-score-ring">
+    <div class="score-value">{{ result.final_score }}</div>
+    <div class="score-total">/ {{ result.exam.total_marks }}</div>
+  </div>
+
+  <div style="font-size:1.5rem;font-weight:800;">
+    {% if pct >= 80 %}🎉 Excellent!
+    {% elif pct >= 60 %}👍 Good Job!
+    {% elif pct >= 40 %}📚 Keep Studying
+    {% else %}😔 Better Luck Next Time{% endif %}
+    &nbsp; {{ pct }}%
+  </div>
+</div>
+
+<!-- Score breakdown -->
+<div class="grid grid-4" style="margin-bottom:1.5rem;">
+  <div class="stat-card">
+    <div class="stat-icon blue">✅</div>
+    <div>
+      <div class="stat-value">{{ result.score }}</div>
+      <div class="stat-label">Raw Score</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red">⚠️</div>
+    <div>
+      <div class="stat-value">{{ result.penalty_marks }}</div>
+      <div class="stat-label">Penalty Marks</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">🏆</div>
+    <div>
+      <div class="stat-value">{{ result.final_score }}</div>
+      <div class="stat-label">Final Score</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon yellow">⚡</div>
+    <div>
+      <div class="stat-value">{{ violations | length }}</div>
+      <div class="stat-label">Violations</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <!-- Answer Review -->
+  <div class="card">
+    <div class="card-header">
+      <h3>📋 Answer Review</h3>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% for q in questions %}
+        {% set student_ans = saved_answers.get(q.id | string, '') %}
+        {% set is_correct  = student_ans == q.correct_option %}
+        <div class="{% if is_correct %}answer-correct{% elif student_ans %}answer-wrong{% endif %}"
+             style="padding:1rem 1.25rem;{% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+            <div>
+              <strong>Q{{ loop.index }}.</strong> {{ q.question_text }}
+              <div style="margin-top:.5rem;font-size:.875rem;">
+                <span style="color:var(--text-muted);">Your answer: </span>
+                <strong>
+                  {% if student_ans %}
+                    {{ student_ans }} — 
+                    {% if student_ans == 'A' %}{{ q.option_a }}
+                    {% elif student_ans == 'B' %}{{ q.option_b }}
+                    {% elif student_ans == 'C' %}{{ q.option_c }}
+                    {% else %}{{ q.option_d }}{% endif %}
+                  {% else %}
+                    <em style="color:var(--text-muted);">Not answered</em>
+                  {% endif %}
+                </strong>
+              </div>
+              {% if not is_correct %}
+                <div style="margin-top:.25rem;font-size:.875rem;color:var(--success);">
+                  ✅ Correct: <strong>{{ q.correct_option }} — 
+                    {% if q.correct_option == 'A' %}{{ q.option_a }}
+                    {% elif q.correct_option == 'B' %}{{ q.option_b }}
+                    {% elif q.correct_option == 'C' %}{{ q.option_c }}
+                    {% else %}{{ q.option_d }}{% endif %}
+                  </strong>
+                </div>
+              {% endif %}
+            </div>
+            <div style="font-size:1.25rem;">
+              {% if is_correct %}✅{% elif student_ans %}❌{% else %}⬜{% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Violation Log -->
+  <div class="card">
+    <div class="card-header">
+      <h3>⚠️ Violation Log</h3>
+      <span class="badge badge-danger">{{ violations | length }} event(s)</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if violations %}
+        {% for v in violations %}
+          <div style="padding:.875rem 1.25rem;{% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
+              <div>
+                <span class="badge {% if v.is_penalty %}badge-danger{% else %}badge-warning{% endif %}">
+                  {% if v.is_penalty %}🔴 Penalty{% else %}🟡 Warning #{{ v.warning_number }}{% endif %}
+                </span>
+                <span style="margin-left:.5rem;font-size:.875rem;">{{ v.human_type }}</span>
+              </div>
+              <span style="font-size:.78rem;color:var(--text-muted);">
+                {{ v.detected_at.strftime('%H:%M:%S') }}
+              </span>
+            </div>
+            {% if v.is_penalty %}
+              <div style="font-size:.8rem;color:var(--danger);margin-top:.25rem;">
+                −{{ v.penalty_marks }} mark(s) deducted
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:2rem;">
+          <div class="empty-icon">🎉</div>
+          <p>No violations detected. Great job!</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:1.5rem;text-align:center;">
+  <a href="{{ url_for('student.dashboard') }}" class="btn btn-primary btn-lg">
+    ← Back to Dashboard
+  </a>
+</div>
+{% endblock %}

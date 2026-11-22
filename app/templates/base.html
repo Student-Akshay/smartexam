@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}SmartExam{% endblock %} — SmartExam</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% block body %}
+<!-- Default: sidebar + main layout -->
+<div class="app-wrapper">
+
+  <!-- ── Sidebar ─────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🎓</div>
+      <div>
+        <div class="brand-name">SmartExam</div>
+        <div class="brand-sub">AI Anti-Cheating</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% if current_user.is_authenticated and current_user.is_admin %}
+        <!-- Admin nav -->
+        <div class="nav-section-title">Admin</div>
+        <a href="{{ url_for('admin.dashboard') }}"
+           class="nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+          <span class="nav-icon">📊</span> Dashboard
+        </a>
+        <a href="{{ url_for('admin.students') }}"
+           class="nav-item {% if request.endpoint == 'admin.students' %}active{% endif %}">
+          <span class="nav-icon">👥</span> Students
+        </a>
+        <a href="{{ url_for('admin.results') }}"
+           class="nav-item {% if request.endpoint == 'admin.results' %}active{% endif %}">
+          <span class="nav-icon">📋</span> Exam Results
+        </a>
+        <a href="{{ url_for('admin.violations') }}"
+           class="nav-item {% if request.endpoint == 'admin.violations' %}active{% endif %}">
+          <span class="nav-icon">⚠️</span> Violations
+        </a>
+      {% elif current_user.is_authenticated %}
+        <!-- Student nav -->
+        <div class="nav-section-title">Student</div>
+        <a href="{{ url_for('student.dashboard') }}"
+           class="nav-item {% if request.endpoint == 'student.dashboard' %}active{% endif %}">
+          <span class="nav-icon">🏠</span> Dashboard
+        </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      {% if current_user.is_authenticated %}
+        <div class="user-info">
+          <div class="avatar">{{ current_user.full_name[0].upper() }}</div>
+          <div>
+            <div style="font-weight:600;color:#e2e8f0;font-size:.85rem;">
+              {{ current_user.full_name }}
+            </div>
+            <div style="font-size:.73rem;color:#64748b;">
+              {{ current_user.role | capitalize }}
+            </div>
+          </div>
+        </div>
+        <a href="{{ url_for('auth.logout') }}"
+           class="btn btn-outline btn-sm btn-full mt-2"
+           style="color:#94a3b8;border-color:#334155;">
+          🚪 Logout
+        </a>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────── -->
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">{% block page_title %}SmartExam{% endblock %}</span>
+      <div class="topbar-actions">
+        {% if current_user.is_authenticated %}
+          <span style="font-size:.875rem;color:var(--text-muted);">
+            👋 {{ current_user.full_name }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <main class="page-content">
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-container">
+            {% for category, msg in messages %}
+              <div class="alert alert-{{ category }}">
+                <span>
+                  {% if category == 'success' %}✅{% elif category == 'danger' %}❌
+                  {% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+                  {{ msg }}
+                </span>
+                <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

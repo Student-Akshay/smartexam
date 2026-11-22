@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}{{ exam.title }}{% endblock %}
+{% block page_title %}{{ exam.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Prevent text selection during exam */
+  .question-text, .option-label { user-select: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Warning overlay (shown by monitor.js) -->
+<div id="warning-overlay">
+  <div class="warning-overlay-header">⚠️ <span id="warning-title">Attention Warning</span></div>
+  <div class="warning-overlay-body" id="warning-message">Please focus on your screen.</div>
+</div>
+
+<!-- Exam layout -->
+<div class="exam-layout">
+
+  <!-- LEFT: Question Panel -->
+  <div>
+    <form id="exam-form"
+          method="POST"
+          action="{{ url_for('student.submit_exam', exam_id=exam.id) }}">
+
+      {% for q in questions %}
+      <div class="question-card"
+           id="question-panel-{{ loop.index }}"
+           style="display:{% if loop.first %}block{% else %}none{% endif %};">
+
+        <div class="question-header">
+          <span class="badge badge-primary">Question {{ loop.index }} / {{ questions | length }}</span>
+          <span class="text-muted" style="font-size:.85rem;">{{ q.marks }} mark(s)</span>
+        </div>
+
+        <div class="question-body">
+          <div class="question-text">{{ loop.index }}. {{ q.question_text }}</div>
+
+          {% set outer_loop = loop %}
+          {% for letter, text in [('A', q.option_a), ('B', q.option_b), ('C', q.option_c), ('D', q.option_d)] %}
+          <label class="option-label" id="label-{{ q.id }}-{{ letter }}"
+                 onclick="selectOption(this)">
+            <input
+              type="radio"
+              name="q_{{ q.id }}"
+              value="{{ letter }}"
+              {% if saved_answers.get(q.id | string) == letter %}checked{% endif %}
+            />
+            <span class="option-letter">{{ letter }}</span>
+            <span>{{ text }}</span>
+          </label>
+          {% endfor %}
+        </div>
+
+        <!-- Nav buttons -->
+        <div style="padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:.75rem;justify-content:space-between;">
+          <button type="button" class="btn btn-outline"
+                  onclick="goToQuestion({{ loop.index - 1 }})"
+                  {% if loop.first %}disabled{% endif %}>
+            ← Previous
+          </button>
+          {% if not loop.last %}
+            <button type="button" class="btn btn-primary"
+                    onclick="goToQuestion({{ loop.index + 1 }})">
+              Next →
+            </button>
+          {% else %}
+            <button type="button" class="btn btn-success"
+                    onclick="openSubmitModal()">
+              ✅ Submit Exam
+            </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </form>
+  </div>
+
+  <!-- RIGHT: Sidebar Panel -->
+  <div>
+
+    <!-- Timer -->
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header" style="justify-content:center;">
+        <h3>⏱ Time Remaining</h3>
+      </div>
+      <div class="exam-timer" id="exam-timer">
+        {{ "%02d:%02d" | format(exam.duration_minutes, 0) }}
+      </div>
+      <div class="progress" style="margin:0 1.5rem 1.25rem;height:6px;">
+        <div class="progress-bar" id="timer-bar" style="width:100%;"></div>
+      </div>
+    </div>
+
+    <!-- Webcam & AI Proctoring -->
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header">
+        <h3>📹 AI Proctoring</h3>
+        <span class="badge badge-success" id="monitor-badge">Normal</span>
+      </div>
+      <div id="webcam-container" style="margin:0 1rem 0.5rem;">
+        <video id="webcam-feed" autoplay muted playsinline></video>
+        <canvas id="capture-canvas" style="display:none;"></canvas>
+      </div>
+
+      <!-- Proctoring Status Details -->
+      <div style="padding:0.75rem 1rem;background:var(--bg-card);border-top:1px solid var(--border);font-size:0.82rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+          <span style="color:var(--text-muted);">Face:</span>
+          <span id="stat-face" class="badge badge-success">● Detected</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+          <span style="color:var(--text-muted);">Gaze:</span>
+          <strong id="stat-gaze" style="color:var(--text);">Looking at Screen</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+          <span style="color:var(--text-muted);">Head:</span>
+          <strong id="stat-head" style="color:var(--text);">Center</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:var(--text-muted);">Monitoring:</span>
+          <span id="stat-monitoring" class="badge badge-success">Normal</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question Navigator -->
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header"><h3>🗺 Question Navigator</h3></div>
+      <div class="card-body">
+        <div class="question-nav" id="question-nav">
+          {% for q in questions %}
+            <button type="button"
+                    class="q-nav-btn {% if saved_answers.get(q.id | string) %}answered{% endif %} {% if loop.first %}current{% endif %}"
+                    id="nav-btn-{{ loop.index }}"
+                    onclick="goToQuestion({{ loop.index }})">
+              {{ loop.index }}
+            </button>
+          {% endfor %}
+        </div>
+        <div style="margin-top:.75rem;font-size:.78rem;color:var(--text-muted);">
+          <span style="display:inline-flex;align-items:center;gap:.3rem;">
+            <span style="width:12px;height:12px;background:var(--primary);border-radius:3px;display:inline-block;"></span>
+            Answered
+          </span>
+          &nbsp;
+          <span style="display:inline-flex;align-items:center;gap:.3rem;">
+            <span style="width:12px;height:12px;background:var(--border);border-radius:3px;display:inline-block;border:1px solid #94a3b8;"></span>
+            Not answered
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warnings counter -->
+    <div class="card">
+      <div class="card-header"><h3>⚠️ Warnings</h3></div>
+      <div class="card-body" style="text-align:center;">
+        <div style="font-size:2.5rem;font-weight:900;color:var(--danger);" id="warning-count">0</div>
+        <div class="text-muted" style="font-size:.8rem;">Total warnings this session</div>
+        <div style="font-size:1.1rem;font-weight:700;margin-top:.5rem;">
+          Penalty: <span id="penalty-count" style="color:var(--danger);">0</span> mark(s)
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end right sidebar -->
+</div>
+
+<!-- Submit Confirmation Modal -->
+<div id="submit-modal" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.5); z-index:10000;
+  align-items:center; justify-content:center;">
+  <div class="card" style="max-width:420px;width:90%;margin:auto;">
+    <div class="card-header">
+      <h3>📤 Submit Exam?</h3>
+    </div>
+    <div class="card-body">
+      <p>Are you sure you want to submit? You <strong>cannot</strong> change your answers afterwards.</p>
+      <div id="unanswered-warning" style="display:none;" class="alert alert-warning mt-2">
+        ⚠️ You have <strong id="unanswered-count">0</strong> unanswered question(s).
+      </div>
+    </div>
+    <div style="padding:1rem 1.5rem;display:flex;gap:.75rem;justify-content:flex-end;">
+      <button type="button" class="btn btn-outline"
+              onclick="closeSubmitModal()">
+        Cancel
+      </button>
+      <button type="button" id="confirm-submit-btn" class="btn btn-success" onclick="executeSubmit()">
+        ✅ Yes, Submit
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Configuration passed from Flask to JS
+  const EXAM_CONFIG = {
+    resultId:             {{ result.id }},
+    totalSeconds:         {{ exam.duration_minutes * 60 }},
+    totalQuestions:       {{ questions | length }},
+    lookAwayThreshold:    {{ config.look_away_threshold_sec }},
+    maxWarnings:          {{ config.max_warnings_before_penalty }},
+    submitUrl:            "{{ url_for('student.submit_exam', exam_id=exam.id) }}",
+    monitorFrameUrl:      "{{ url_for('monitoring.analyse') }}",
+    monitorEventUrl:      "{{ url_for('monitoring.record_event') }}",
+  };
+
+  // Pre-filled answers from server (for resumed exams)
+  const SAVED_ANSWERS = {{ saved_answers | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/exam.js') }}"></script>
+<script src="{{ url_for('static', filename='js/monitor.js') }}"></script>
+{% endblock %}

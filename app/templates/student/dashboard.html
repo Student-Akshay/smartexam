@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="mb-2">
+  <h1>👋 Welcome, {{ current_user.full_name }}!</h1>
+  <p class="text-muted">Select an exam below to begin. The AI monitoring system will be activated once you start.</p>
+</div>
+
+<!-- Available Exams -->
+<div class="card">
+  <div class="card-header">
+    <h3>📚 Available Examinations</h3>
+    <span class="badge badge-primary">{{ exams | length }} exam(s)</span>
+  </div>
+  <div class="card-body" style="padding:0;">
+
+    {% if exams %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Exam Title</th>
+              <th>Description</th>
+              <th>Duration</th>
+              <th>Total Marks</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for exam in exams %}
+              {% set result = results_map.get(exam.id) %}
+              <tr>
+                <td>
+                  <strong>{{ exam.title }}</strong>
+                </td>
+                <td class="text-muted" style="max-width:250px;">
+                  {{ (exam.description or '—') | truncate(80) }}
+                </td>
+                <td>⏱ {{ exam.duration_minutes }} min</td>
+                <td>{{ exam.total_marks }} marks</td>
+                <td>
+                  {% if result %}
+                    {% if result.status == 'submitted' %}
+                      <span class="badge badge-success">✅ Completed</span>
+                    {% elif result.status == 'in_progress' %}
+                      <span class="badge badge-warning">🔄 In Progress</span>
+                    {% elif result.status == 'retake_allowed' %}
+                      <span class="badge badge-info">🔄 Retake Allowed</span>
+                    {% else %}
+                      <span class="badge badge-danger">❌ Terminated</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge badge-muted">⬜ Not Attempted</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if result and result.status == 'submitted' %}
+                    <a href="{{ url_for('student.result', result_id=result.id) }}"
+                       class="btn btn-outline btn-sm">
+                      📊 View Result
+                    </a>
+                  {% elif result and result.status == 'in_progress' %}
+                    <a href="{{ url_for('student.exam', exam_id=exam.id) }}"
+                       class="btn btn-warning btn-sm">
+                      ▶ Resume
+                    </a>
+                  {% elif result and result.status == 'retake_allowed' %}
+                    <a href="{{ url_for('student.exam', exam_id=exam.id) }}"
+                       class="btn btn-primary btn-sm">
+                      🔄 Start Retake
+                    </a>
+                  {% else %}
+                    <a href="{{ url_for('student.exam', exam_id=exam.id) }}"
+                       class="btn btn-primary btn-sm">
+                      🚀 Start Exam
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h3>No exams available yet</h3>
+        <p>Check back later when your instructor publishes an exam.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Past Results Summary -->
+{% if results_map %}
+<div class="card" style="margin-top:1.5rem;">
+  <div class="card-header">
+    <h3>📈 Your Results Summary</h3>
+  </div>
+  <div class="card-body">
+    <div class="grid grid-3">
+      {% set submitted_results = results_map.values() | selectattr('status','eq','submitted') | list %}
+      <div class="stat-card">
+        <div class="stat-icon blue">📝</div>
+        <div>
+          <div class="stat-value">{{ submitted_results | length }}</div>
+          <div class="stat-label">Exams Completed</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">⭐</div>
+        <div>
+          <div class="stat-value">
+            {% if submitted_results %}
+              {{ "%.0f" | format(submitted_results | map(attribute='percentage') | list | sum / submitted_results | length) }}%
+            {% else %}—{% endif %}
+          </div>
+          <div class="stat-label">Average Score</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">⚠️</div>
+        <div>
+          <div class="stat-value">
+            {{ submitted_results | map(attribute='penalty_marks') | sum }}
+          </div>
+          <div class="stat-label">Total Penalty Marks</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

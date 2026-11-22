@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="mb-2">
+  <h1>📊 Overview</h1>
+  <p class="text-muted">Welcome back, {{ current_user.full_name }}. Here's a quick snapshot of SmartExam activity.</p>
+</div>
+
+<!-- Stat Cards -->
+<div class="grid grid-4" style="margin-bottom:1.5rem;">
+  <div class="stat-card">
+    <div class="stat-icon blue">👥</div>
+    <div>
+      <div class="stat-value">{{ total_students }}</div>
+      <div class="stat-label">Total Students</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">📝</div>
+    <div>
+      <div class="stat-value">{{ total_exams }}</div>
+      <div class="stat-label">Total Exams</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon yellow">✅</div>
+    <div>
+      <div class="stat-value">{{ total_results }}</div>
+      <div class="stat-label">Submissions</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red">⚠️</div>
+    <div>
+      <div class="stat-value">{{ total_violations }}</div>
+      <div class="stat-label">Violations Logged</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+
+  <!-- Recent Submissions -->
+  <div class="card">
+    <div class="card-header">
+      <h3>📋 Recent Submissions</h3>
+      <a href="{{ url_for('admin.results') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if recent_results %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Exam</th>
+                <th>Score</th>
+                <th>Penalty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recent_results %}
+                <tr>
+                  <td>{{ r.student.full_name }}</td>
+                  <td>{{ r.exam.title }}</td>
+                  <td>
+                    <strong>{{ r.final_score }}</strong>
+                    <span class="text-muted">/ {{ r.exam.total_marks }}</span>
+                  </td>
+                  <td>
+                    {% if r.penalty_marks > 0 %}
+                      <span class="badge badge-danger">−{{ r.penalty_marks }}</span>
+                    {% else %}
+                      <span class="badge badge-success">None</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:2rem;">
+          <div class="empty-icon">📭</div>
+          <p>No submissions yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Violations -->
+  <div class="card">
+    <div class="card-header">
+      <h3>⚠️ Recent Violations</h3>
+      <a href="{{ url_for('admin.violations') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if recent_violations %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Type</th>
+                <th>Warning</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in recent_violations %}
+                <tr>
+                  <td>{{ v.student.full_name }}</td>
+                  <td>
+                    <span class="badge {% if v.is_penalty %}badge-danger{% else %}badge-warning{% endif %}">
+                      {{ v.human_type }}
+                    </span>
+                  </td>
+                  <td>#{{ v.warning_number }}</td>
+                  <td class="text-muted" style="font-size:.8rem;">
+                    {{ v.detected_at.strftime('%d %b %H:%M') }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:2rem;">
+          <div class="empty-icon">✅</div>
+          <p>No violations recorded yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

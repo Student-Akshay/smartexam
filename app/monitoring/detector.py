@@ -258,6 +258,7 @@ def analyse_frame(
     rgb_frame = _decode_base64_frame(b64_data)
     if rgb_frame is None:
         result["violation"] = "FRAME_ERROR"
+        result["error"] = "Frame decoding returned None"
         return result
 
     img_h, img_w = rgb_frame.shape[:2]
@@ -270,6 +271,7 @@ def analyse_frame(
     except Exception as exc:
         logger.error("FaceLandmarker detection error: %s", exc)
         result["violation"] = "FRAME_ERROR"
+        result["error"] = str(exc)
         return result
 
     face_count = len(detection.face_landmarks) if detection and detection.face_landmarks else 0

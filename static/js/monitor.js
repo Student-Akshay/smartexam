@@ -84,25 +84,38 @@ async function initWebcam() {
     if (video) {
       video.srcObject = mediaStream;
 
-      video.onloadedmetadata = () => {
+      let readyFired = false;
+      const onVideoReady = () => {
+        if (readyFired) return;
+        readyFired = true;
+
         if (canvas) {
           canvas.width  = video.videoWidth  || 640;
           canvas.height = video.videoHeight || 480;
         }
         monitoringActive = true;
-        updateStatusDisplay({
-          faceText: '● Detected',
-          faceClass: 'badge-success',
-          gazeText: 'Looking at Screen',
-          headText: 'Center',
-          monitorText: 'Normal',
-          monitorClass: 'badge-success'
-        });
+        console.log('[SmartExam Proctor] Webcam ready:', canvas.width, 'x', canvas.height);
 
         // Start periodic frame capture
         if (frameIntervalTimer) clearInterval(frameIntervalTimer);
         frameIntervalTimer = setInterval(captureAndAnalyse, FRAME_INTERVAL_MS);
+
+        // Immediate first capture
+        captureAndAnalyse();
       };
+
+      video.addEventListener('loadedmetadata', onVideoReady);
+      video.addEventListener('canplay', onVideoReady);
+
+      try {
+        await video.play();
+      } catch (playErr) {
+        console.warn('[SmartExam Proctor] Video play warning:', playErr);
+      }
+
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        onVideoReady();
+      }
     }
   } catch (err) {
     console.error('Camera access denied or unavailable:', err);
@@ -143,7 +156,14 @@ function stopMonitoring() {
 // 3. Periodic Frame Capture & API Call
 // -------------------------------------------------------------------
 async function captureAndAnalyse() {
-  if (!monitoringActive || !video || video.readyState < 2 || !canvas || !ctx) return;
+  if (!monitoringActive || !video || !canvas || !ctx) return;
+  if (!video.videoWidth || !video.videoHeight) return;
+
+  // Sync canvas size with video feed
+  if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+  }
 
   // Render current video frame to offscreen canvas
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -159,11 +179,14 @@ async function captureAndAnalyse() {
       })
     });
 
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      console.warn('[SmartExam] Frame API error status:', resp.status);
+      return;
+    }
     const detection = await resp.json();
     processDetection(detection);
   } catch (err) {
-    console.warn('Proctoring frame analysis error:', err);
+    console.warn('[SmartExam] Proctoring frame analysis error:', err);
   }
 }
 
@@ -171,7 +194,12 @@ async function captureAndAnalyse() {
 // 4. Process Detection & Temporal Smoothing
 // -------------------------------------------------------------------
 function processDetection(raw) {
-  if (!raw || raw.violation === 'FRAME_ERROR') return;
+  if (!raw) return;
+
+  if (raw.violation === 'FRAME_ERROR') {
+    console.warn('[SmartExam] Server reported frame error:', raw.error || raw);
+    return;
+  }
 
   // Add to rolling history buffer
   recentDetections.push(raw);

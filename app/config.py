@@ -23,7 +23,14 @@ class Config:
     if DATABASE_URL:
         if DATABASE_URL.startswith("postgres://"):
             DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        if "sslmode=" not in DATABASE_URL and ("supabase.com" in DATABASE_URL or "pooler" in DATABASE_URL or "amazonaws.com" in DATABASE_URL):
+            delimiter = "&" if "?" in DATABASE_URL else "?"
+            DATABASE_URL = f"{DATABASE_URL}{delimiter}sslmode=require"
         SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
+            "pool_recycle": 300,
+        }
     else:
         DB_HOST     = os.environ.get("DB_HOST",     "localhost")
         DB_PORT     = int(os.environ.get("DB_PORT", "3306"))
